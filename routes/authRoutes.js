@@ -5,12 +5,8 @@ const OTP = require('../models/OTP');
 const { sendSMS } = require('../utils/sms');
 const crypto = require('crypto');
 
-// Generate OTP
-const generateOTP = () => {
-  return crypto.randomInt(1000, 9999).toString();
-};
+const generateOtp = require('../utils/generateOtp');
 
-// Send OTP Route
 router.post('/phone/send-code', async (req, res) => {
   const { phoneNumber } = req.body;
 
@@ -18,11 +14,10 @@ router.post('/phone/send-code', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid phone number' });
   }
 
-  const otp = generateOTP();
-
+  const otp = generateOtp(6); 
   try {
     await OTP.create({ phoneNumber, otp });
-    await sendSMS(phoneNumber, `Your verification code is ${otp}`);
+    await sendOtp(phoneNumber, otp);
     res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     console.error(error);
@@ -30,7 +25,7 @@ router.post('/phone/send-code', async (req, res) => {
   }
 });
 
-// Verify OTP Route
+
 router.post('/phone/verify-code', async (req, res) => {
   const { phoneNumber, code } = req.body;
 

@@ -1,9 +1,11 @@
 // utils/generateOtp.js
-const crypto = require('crypto');
-
-const generateOtp = () => {
-  // Generate a 4-digit OTP using crypto
-  return crypto.randomInt(1000, 9999).toString();
+const generateOtp = (length = 6) => {
+  const digits = '0123456789';
+  let otp = '';
+  for (let i = 0; i < length; i++) {
+    otp += digits[Math.floor(Math.random() * 10)];
+  }
+  return otp;
 };
 
 module.exports = generateOtp;

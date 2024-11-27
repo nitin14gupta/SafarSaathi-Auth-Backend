@@ -1,19 +1,27 @@
-// utils/sendOtp.js
-const axios = require('axios');
+const Twilio = require('twilio');
+const dotenv = require('dotenv');
 
-const sendOtp = async (phoneNumber, otp) => {
-  const apiKey = process.env.MSG91_API_KEY;
-  const senderId = process.env.MSG91_SENDER_ID;
-  const templateId = process.env.MSG91_TEMPLATE_ID;
-  const url = `https://api.msg91.com/api/v5/otp?authkey=${apiKey}&template_id=${templateId}&mobile=${phoneNumber}&otp=${otp}`;
+dotenv.config();
 
-  try {
-    const response = await axios.post(url);
-    return response.data;
-  } catch (error) {
-    console.error('Error sending OTP:', error);
-    throw new Error('Failed to send OTP');
+const sendOtp = (phoneNumber, otp) => {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
+  if (!accountSid || !authToken || !fromPhoneNumber) {
+    throw new Error("Twilio credentials are missing");
   }
+
+  const client = new Twilio(accountSid, authToken);
+
+  client.messages
+    .create({
+      body: `Your OTP is: ${otp}`,
+      from: fromPhoneNumber,
+      to: phoneNumber
+    })
+    .then(message => console.log('OTP sent successfully:', message.sid))
+    .catch(error => console.error('Error sending OTP:', error));
 };
 
 module.exports = sendOtp;
