@@ -1,11 +1,16 @@
 // utils/generateOtp.js
-const generateOtp = (length = 6) => {
+const generateOtp = () => {
   const digits = '0123456789';
   let otp = '';
-  for (let i = 0; i < length; i++) {
+
+  while (otp.length < 6) {
     otp += digits[Math.floor(Math.random() * 10)];
   }
+
   return otp;
 };
+
+const otp = generateOtp();
+console.log('Generated OTP:', otp);
 
 module.exports = generateOtp;

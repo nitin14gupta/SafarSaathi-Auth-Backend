@@ -9,3 +9,4 @@ const OTPSchema = new mongoose.Schema({
 });
 OTPSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 module.exports = mongoose.model('OTP', OTPSchema);
+

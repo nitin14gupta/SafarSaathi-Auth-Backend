@@ -4,18 +4,19 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const generateOtp = require('./utils/generateOtp');
 const sendOtp = require('./utils/sendOtp');
-const Otp = require('./models/OTP');
+const Otp = require('./models/otp');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const connectDB = require('./utils/connectDB');
 const cors = require('cors');
 const morgan = require('morgan');
 const Joi = require('joi'); //input validation
+const User = require('./models/user'); // Import the User model
 
-dotenv.config(); // loading the  environment variables
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 8081;
+const port = process.env.PORT || 5001;
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -36,7 +37,6 @@ const otpLimiter = rateLimit({
 // Connect to MongoDB
 connectDB();
 
-// Route to generate and send OTP
 app.post('/auth/phone/send-code', otpLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
 
@@ -50,11 +50,10 @@ app.post('/auth/phone/send-code', otpLimiter, async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid phone number' });
   }
 
-  const otp = generateOtp(6); // 6 digit hoga OTP
+  const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
 
   try {
-    // Check if an OTP already exists for this phone number and remove it
     const existingOtp = await Otp.findOne({ phoneNumber });
     if (existingOtp) {
       await Otp.deleteOne({ phoneNumber });
@@ -65,7 +64,7 @@ app.post('/auth/phone/send-code', otpLimiter, async (req, res) => {
     await otpEntry.save();
 
     // Send OTP via Twilio
-    await sendOtp(phoneNumber, otp);
+    await sendOtp(otp);
 
     res.json({ success: true, message: 'Verification code sent successfully.' });
   } catch (error) {
@@ -100,19 +99,31 @@ app.post('/auth/phone/verify-code', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
-    // if OTP will bevalid, delete the OTP record from database 😁
+    // OTP is valid, delete the OTP record from the database
     await Otp.deleteOne({ phoneNumber });
+
+    // Check if the user already exists in the database
+    let user = await User.findOne({ phoneNumber });
+
+    if (!user) {
+      // If the user doesn't exist, create a new user
+      user = new User({ phoneNumber });
+      await user.save();
+    }
 
     // Generate the JWT token
     const token = jwt.sign({ phoneNumber }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.json({ success: true, message: 'Phone number verified successfully', token });
+    res.json({
+      success: true,
+      message: 'Phone number verified successfully and user saved to database',
+      token,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Failed to verify OTP', error: error.message });
   }
 });
-
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
